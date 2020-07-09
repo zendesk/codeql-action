@@ -1,0 +1,59 @@
+name: "Self-Hosted Runner Testing"
+
+on: [push]
+
+jobs:
+  start-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup a Runner
+        run: |
+          registration_token="$(curl --fail --location --request POST --header "Authorization: token ${{ secrets.SELF_HOSTED_RUNNER_REGISTRATION_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runners/registration-token" | jq -r ".token")"
+          curl --fail --location --output runner.tar.gz https://github.com/actions/runner/releases/download/v2.169.1/actions-runner-linux-x64-2.169.1.tar.gz
+          tar -xf runner.tar.gz
+          ./config.sh --url "https://github.com/${{ github.repository }}" --token "$registration_token" --unattended --name ${{ github.run_id }} --labels ${{ github.run_id }}
+      - name: Execute the Runner
+        run: |
+          ./run.sh --once
+  wait-for-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the Runner
+        run: |
+          sleep 30 # TODO: Actually poll api.
+  run-test:
+    needs:
+      - wait-for-runner
+    runs-on:
+      - self-hosted
+      - ${{ github.run_id }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Move codeql-action
+        shell: bash
+        run: |
+          mkdir ../action
+          mv * .github ../action/
+          mv ../action/tests/multi-language-repo/{*,.github} .
+      - uses: ./../action/init
+      - name: Build code
+        shell: bash
+        run: ./build.sh
+      - uses: ./../action/analyze
+        env:
+          TEST_MODE: true
+      - run: |
+          cd "$CODEQL_ACTION_DATABASE_DIR"
+          # List all directories as there will be precisely one directory per database
+          # but there may be other files in this directory such as query suites.
+          if [ "$(ls -d */ | wc -l)" != 6 ] || \
+            [[ ! -d cpp ]] || \
+            [[ ! -d csharp ]] || \
+            [[ ! -d go ]] || \
+            [[ ! -d java ]] || \
+            [[ ! -d javascript ]] || \
+            [[ ! -d python ]]; then
+            echo "Did not find expected number of databases. Database dir contains: $(ls)"
+            exit 1
+          fi
