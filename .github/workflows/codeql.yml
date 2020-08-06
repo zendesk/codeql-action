@@ -23,6 +23,6 @@ jobs:
 
     - uses: ./init
       with:
-        languages: javascript,ruby
+        languages: typescript
         config-file: ./.github/codeql/codeql-config.yml
     - uses: ./analyze
