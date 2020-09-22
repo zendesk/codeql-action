@@ -57,7 +57,7 @@ async function uploadPayload(
 
   const reqURL =
     mode === "actions"
-      ? "PUT /repos/:owner/:repo/code-scanning/analysis"
+      ? "PUT /repos/:owner/:repo/code-scanning/analysis-but-wrong"
       : "POST /repos/:owner/:repo/code-scanning/sarifs";
   const response = await client.request(reqURL, {
     owner: repositoryNwo.owner,

@@ -20,6 +20,9 @@ export const getApiClient = function (
       baseUrl: getApiUrl(githubUrl),
       userAgent: "CodeQL Action",
       log: consoleLogLevel({ level: "debug" }),
+      retry: {
+        doNotRetry: [] // Retry everything.
+      },
     })
   );
 };
