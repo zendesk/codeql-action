@@ -219,6 +219,14 @@ async function uploadFiles(
 
   let payload: string;
   if (mode === "actions") {
+    var baseRef = null
+    var baseSha = null
+    if (process.env.GITHUB_EVENT_NAME == 'pull_request' && process.env.GITHUB_EVENT_PATH) {
+      const githubEvent = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
+      baseRef = githubEvent.pull_request.base.ref
+      baseSha = githubEvent.pull_request.base.ref
+    }
+
     payload = JSON.stringify({
       commit_oid: commitOid,
       ref,
@@ -230,6 +238,8 @@ async function uploadFiles(
       environment,
       started_at: process.env[sharedEnv.CODEQL_WORKFLOW_STARTED_AT],
       tool_names: toolNames,
+      base_ref: baseRef,
+      base_sha: baseSha,
     });
   } else {
     payload = JSON.stringify({
